@@ -53,8 +53,18 @@ function getDuration(vId, apiKey){
 	});
 }
 
+// Make url to get comment from YouTube API
 function makeUrl(videoId, apiKey, pageToken){
-	const fields = "&fields=items%28snippet%2FtopLevelComment%2Fsnippet%2FtextOriginal%2Csnippet%2FtopLevelComment%2Fsnippet%2FauthorDisplayName%2Csnippet%2FtopLevelComment%2Fid%2Creplies%2Fcomments%28snippet%2FtextOriginal%2Csnippet%2FauthorDisplayName%29%29%2CnextPageToken";
+	const fields = "&fields=items%28snippet%2FtopLevelComment%2Fsnippet%2FtextOriginal%2C" +  // comment text
+	"snippet%2FtopLevelComment%2Fsnippet%2FauthorDisplayName%2C" + // comment author
+	"snippet%2FtopLevelComment%2Fid%2C" + // comment id
+	"snippet%2FtopLevelComment%2Fsnippet%2FlikeCount%2C" + // like count
+	"replies%2Fcomments%28" + // replies
+	"snippet%2FtextOriginal%2C" + // reply text
+	"snippet%2FlikeCount%2C" + // reply like count
+	"snippet%2FauthorDisplayName" + // reply author
+	"%29%29%2C" + // end replies
+	"nextPageToken"; // end fields
 	let url = "https://www.googleapis.com/youtube/v3/commentThreads?part=snippet%2Creplies&videoId=";
 	url += videoId.toString() + "&maxResults=100" + fields + "&key=" + apiKey.toString();
 	if(pageToken != -1){
@@ -69,13 +79,14 @@ function filterComments(comments){
 		let textContent = comments[i]["snippet"]["topLevelComment"]["snippet"]["textOriginal"];
 		let user = comments[i]["snippet"]["topLevelComment"]["snippet"]["authorDisplayName"];
 		let commentId = comments[i]["snippet"]["topLevelComment"]["id"].trim();
+		const likeCount = comments[i]["snippet"]["topLevelComment"]["snippet"]["likeCount"];
 		const allStamps = textContent.match(/[0-9]{0,2}:{0,1}[0-9]{0,2}:[0-9][0-9]\s+/g);
 		let replies = getReplies(comments[i]);
 		if(allStamps != null){
 			const splitContent = textContent.split(new RegExp(/[0-9]{0,2}:{0,1}[0-9]{0,2}:[0-9][0-9]\s+/g));
 			for(var j = 0;j<allStamps.length;j++){
 				if(splitContent[j] == "" || splitContent[j][splitContent[j].length-1] == " "){
-					const timeStamp = {"time": allStamps[j].trim(), "text": textContent, "user": user, "id": commentId, "replies": replies};
+					const timeStamp = {"time": allStamps[j].trim(), "text": textContent, "user": user, "id": commentId, "replies": replies, "likeCount": likeCount};
 					res.push(timeStamp);
 				}
 			}
@@ -89,7 +100,7 @@ function getReplies(comment) {
 	if (comment["replies"] && comment["replies"]["comments"]) {
 		let replyComments = comment["replies"]["comments"];
 		for(var i = 0; i < replyComments.length; i++) { 
-			replies.push({"text": replyComments[i]["snippet"]["textOriginal"], "user": replyComments[i]["snippet"]["authorDisplayName"]})
+			replies.push({"text": replyComments[i]["snippet"]["textOriginal"], "user": replyComments[i]["snippet"]["authorDisplayName"], "likeCount": replyComments[i]?.snippet?.likeCount})
 		}
 	}
 	return replies;
