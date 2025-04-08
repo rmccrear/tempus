@@ -22,11 +22,13 @@ function editContent(content){
     return ans;
 }
 
-function makeCommentDiv(user, content, timestamp, id, isLive, parity, replies){
+function makeCommentDiv(user, content, timestamp, id, isLive, parity, replies, likeCount){
     const commentContainer = document.createElement('div');
     commentContainer.style.padding = "10px";
     commentContainer.style.fontSize = "13px";
     commentContainer.style.fontFamily = "Roboto";
+    // add data-like-count attribute
+    commentContainer.setAttribute('data-like-count', likeCount);
     if (parity == 1) {
         commentContainer.style.backgroundColor = "#1E1E1E";
     }
@@ -40,6 +42,14 @@ function makeCommentDiv(user, content, timestamp, id, isLive, parity, replies){
     username.style.fontWeight = "bold";
     username.style.lineHeight = "16px";
     username.innerHTML = user.toString();
+    const likeCountDiv = document.createElement('div');
+    likeCountDiv.style.float = "right";
+    likeCountDiv.style.color = "#999999";
+    likeCountDiv.style.display = "inline";
+    likeCountDiv.style.fontWeight = "bold";
+    likeCountDiv.style.lineHeight = "16px";
+    console.log(likeCount);
+    likeCountDiv.innerHTML = " likes: " + likeCount?.toString();
     const contentContainer = document.createElement('div');
     contentContainer.style.color = "white";
     contentContainer.style.overflowWrap = "break-word";
@@ -138,6 +148,7 @@ function makeCommentDiv(user, content, timestamp, id, isLive, parity, replies){
 
     commentContainer.appendChild(username);
     commentContainer.appendChild(contentContainer);
+    commentContainer.appendChild(likeCountDiv);
     if (replies.length > 0) {
         commentContainer.appendChild(toggleArrow);
         commentContainer.appendChild(replyCountText);
@@ -232,7 +243,8 @@ function onClickMarker(timestamp){
         for(let j = timestamp; j < timestamp+config.density; j++){
             if(j in commentsTime){
                 for(let i = 0; i < commentsTime[j].length; i++){
-                    let divCommentView = makeCommentDiv(commentsTime[j][i][1], commentsTime[j][i][0], -1, commentsTime[j][i][2], false, i&1, commentsTime[timestamp][i][3]);
+                    // Note: divCommentView take 5 arguments: user, content, timestamp, id, isLive, parity, replies, likeCount
+                    let divCommentView = makeCommentDiv(commentsTime[j][i][1], commentsTime[j][i][0], -1, commentsTime[j][i][2], false, i&1, commentsTime[timestamp][i][3], commentsTime[timestamp][i][4]);
                     document.getElementById("panelContent").appendChild(divCommentView);
                 }
             }
@@ -334,9 +346,13 @@ function initialize(response){
     for(let i = 0;i<response.length;i++){
         let num = getSeconds(response[i]["time"]);
         if(num in commentsTime){
-            commentsTime[num].push([response[i]["text"], response[i]["user"], response[i]["id"], response[i]["replies"]]);
+            // 5 elements in array: text, user, id, replies, likeCount
+            // This will be use to pass into makeCommentDiv
+            commentsTime[num].push([response[i]["text"], response[i]["user"], response[i]["id"], response[i]["replies"], response[i]["likeCount"]]);
         } else {
-            commentsTime[num] = [[response[i]["text"], response[i]["user"], response[i]["id"], response[i]["replies"]]];
+            // First time the comment time is encountered
+            // Create the nested array
+            commentsTime[num] = [[response[i]["text"], response[i]["user"], response[i]["id"], response[i]["replies"], response[i]["likeCount"]]];
         }
     }
     commentsResponse = response;
@@ -472,7 +488,8 @@ vid.ontimeupdate = function() {
                     if (placeholderImg != undefined) {
                         placeholderImg.style.display = 'none';
                     }
-                    divCommentView = makeCommentDiv(commentsTime[timestamp][i][1], commentsTime[timestamp][i][0], timestamp, commentsTime[timestamp][i][2], true, liveContent.getElementsByTagName('div').length & 1, commentsTime[timestamp][i][3]);
+                    // Note: divCommentView take 5 arguments: user, content, timestamp, id, isLive, parity, replies, likeCount
+                    divCommentView = makeCommentDiv(commentsTime[timestamp][i][1], commentsTime[timestamp][i][0], timestamp, commentsTime[timestamp][i][2], true, liveContent.getElementsByTagName('div').length & 1, commentsTime[timestamp][i][3], commentsTime[timestamp][i][4]);
                     liveContent.appendChild(divCommentView);
                     liveContent.scrollTop = liveContent.scrollHeight;
                 }
