@@ -48,8 +48,11 @@ function makeCommentDiv(user, content, timestamp, id, isLive, parity, replies, l
     likeCountDiv.style.display = "inline";
     likeCountDiv.style.fontWeight = "bold";
     likeCountDiv.style.lineHeight = "16px";
-    console.log(likeCount);
-    likeCountDiv.innerHTML = " likes: " + likeCount?.toString();
+    if (likeCount !== undefined) {
+        likeCountDiv.innerHTML = " likes: " + likeCount;
+    } else {
+        likeCountDiv.innerHTML = " likes: 0";
+    }
     const contentContainer = document.createElement('div');
     contentContainer.style.color = "white";
     contentContainer.style.overflowWrap = "break-word";
