@@ -181,7 +181,8 @@ function makePanel(ifLive){
         headerHtml = `
         <div id="panelHeader" style="position: relative; width:100%; height: 60px; background-color: #1D1D1D; border-radius: 2px 2px 0px 0px;">
             <div style="float:left; font-size: 16px; color:white; padding-top: 5%; padding-bottom:5%; padding-left:16px; font-family: 'Roboto';">Comments</div>
-            <div id="timestampView" style="position: relative; float:left; background-color: #24283A;font-size: 16px; color: #3EA6FF; top: 30%; margin-left: 2%; padding: 2px 5px 2px 5px; border-radius: 3px;">1:15:30</div>
+            <div id="timestampView" style="position: relative; float:left; background-color: #24283A;font-size: 16px; color: #3EA6FF; top: 30%; margin-left: 2%; padding: 2px 5px 2px 5px; border-radius: 3px;">Click marker</div>
+            <button id="sortToggleButton" style="position: relative; float:left; background-color: #24283A; color: #3EA6FF; border: none; border-radius: 3px; padding: 4px 8px; font-size: 12px; top: 30%; margin-left: 10px; cursor: pointer;">Sort By Likes</button>
             <button id="commentPanelButton" style="position: relative; border:none; float:right; top: 15%; background-color: transparent; outline: none; color: white; font-size: 35px; margin-right: 2%; cursor:pointer;">×</button>
         </div>`
     }
@@ -238,7 +239,7 @@ function onClickMarker(timestamp){
     vid.currentTime = timestamp;
     if(config.commentView){
         document.getElementById("commentView").style.display = "block";
-        document.getElementById("timestampView").innerHTML = (config.density === 1) ? getStamp(timestamp) : getStamp(timestamp) + " — " + getStamp(timestamp+config.density-1);
+        document.getElementById("timestampView").innerHTML = (config.density === 1) ? getStamp(timestamp) : getStamp(timestamp) + " — " + getStamp(timestamp+config.density-1);
         document.getElementById("panelContent").innerHTML = "";
         for(let j = timestamp; j < timestamp+config.density; j++){
             if(j in commentsTime){
@@ -369,6 +370,53 @@ function initialize(response){
         config.liveCommentView = false;
         chrome.storage.local.set({'liveCommentView': config.liveCommentView}, function() {});
     });
+
+    // Add sort mode state and event listener
+    let sortByLikes = false; // Default to original time-based order
+    let originalOrder = []; // Store original order of comments
+
+    let sortToggleButton = document.getElementById('sortToggleButton');
+    if (sortToggleButton) {
+        sortToggleButton.addEventListener('click', function() {
+            const panelContent = document.getElementById("panelContent");
+            if (panelContent) {
+                const comments = Array.from(panelContent.children);
+                
+                if (comments.length > 0) {
+                    if (!sortByLikes) {
+                        // Store original order if not already stored
+                        if (originalOrder.length === 0) {
+                            originalOrder = [...comments];
+                        }
+                        
+                        // Sort by likes
+                        const sortedComments = comments.sort((a, b) => {
+                            const likesA = parseInt(a.getAttribute('data-like-count') || 0);
+                            const likesB = parseInt(b.getAttribute('data-like-count') || 0);
+                            return likesB - likesA; // Sort in descending order
+                        });
+                        
+                        panelContent.innerHTML = "";
+                        sortedComments.forEach(comment => {
+                            panelContent.appendChild(comment);
+                        });
+                        
+                        sortToggleButton.innerHTML = "Sort By Time";
+                    } else {
+                        // Restore original order
+                        panelContent.innerHTML = "";
+                        originalOrder.forEach(comment => {
+                            panelContent.appendChild(comment);
+                        });
+                        
+                        sortToggleButton.innerHTML = "Sort By Likes";
+                    }
+                    
+                    sortByLikes = !sortByLikes;
+                }
+            }
+        });
+    }
 }
 
 chrome.storage.local.get(['heatmap', 'normalMarker', 'density', 'commentView', 'primaryColor', 'liveCommentView'], function(result) {
